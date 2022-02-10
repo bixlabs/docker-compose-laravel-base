@@ -1,0 +1,125 @@
+version: '3'
+
+networks:
+  laravel:
+
+services:
+  site:
+    build:
+      context: ./docker
+      dockerfile: nginx.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    container_name: ${PROJECT_NAME}-nginx
+    ports:
+      - 8081:80
+    volumes:
+      - ./src:/var/www/html:delegated
+    depends_on:
+      - php
+      - db
+      # uncomment if you want the redis service
+      # - redis
+      # uncomment if you want the mailhog service
+      # - mailhog
+    networks:
+      - laravel
+
+  db:
+    image: mysql:latest
+    container_name: ${PROJECT_NAME}-db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 3307:3306
+    volumes:
+      - ./docker/db/data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: ${PROJECT_NAME}-local-db
+      MYSQL_USER: ${PROJECT_NAME}-local-user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: password
+      SERVICE_TAGS: local
+      SERVICE_NAME: db
+    networks:
+      - laravel
+
+  php:
+    build:
+      context: ./docker
+      dockerfile: php.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    container_name: ${PROJECT_NAME}-php
+    volumes:
+      - ./src:/var/www/html:delegated
+    networks:
+      - laravel
+
+  composer:
+    build:
+      context: ./docker
+      dockerfile: composer.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    container_name: ${PROJECT_NAME}-composer
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    depends_on:
+      - php
+    user: laravel
+    entrypoint: ['composer', '--ignore-platform-reqs']
+    networks:
+      - laravel
+
+  artisan:
+    build:
+      context: ./docker
+      dockerfile: php.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    container_name: ${PROJECT_NAME}-artisan
+    volumes:
+      - ./src:/var/www/html:delegated
+    depends_on:
+      - db
+    working_dir: /var/www/html
+    entrypoint: ['php', '/var/www/html/artisan']
+    networks:
+      - laravel
+
+  npm:
+    image: node:16.14
+    container_name: ${PROJECT_NAME}-npm
+    volumes:
+      - ./src:/var/www/html
+    ports:
+      - 3001:3000
+      - 3002:3001
+    working_dir: /var/www/html
+    entrypoint: ['npm']
+    networks:
+      - laravel
+
+  redis:
+    image: redis:alpine
+    container_name: ${PROJECT_NAME}-redis
+    restart: unless-stopped
+    ports:
+      - 6380:6379
+    networks:
+      - laravel
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: ${PROJECT_NAME}-mailhog
+    ports:
+      - 1026:1025
+      - 8026:8025
+    networks:
+      - laravel
