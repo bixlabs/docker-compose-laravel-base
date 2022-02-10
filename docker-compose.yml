@@ -11,7 +11,7 @@ services:
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
-    container_name: ${PROJECT_NAME}-nginx
+    container_name: new_project-nginx
     ports:
       - 8081:80
     volumes:
@@ -28,16 +28,16 @@ services:
 
   db:
     image: mysql:latest
-    container_name: ${PROJECT_NAME}-db
+    container_name: new_project-db
     restart: unless-stopped
     tty: true
     ports:
       - 3307:3306
     volumes:
-      - ./docker/db/data:/var/lib/mysql
+      - ~/.docker/data/new_project/db:/var/lib/mysql
     environment:
-      MYSQL_DATABASE: ${PROJECT_NAME}-local-db
-      MYSQL_USER: ${PROJECT_NAME}-local-user
+      MYSQL_DATABASE: new_project-local-db
+      MYSQL_USER: new_project-local-user
       MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: password
       SERVICE_TAGS: local
@@ -52,7 +52,7 @@ services:
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
-    container_name: ${PROJECT_NAME}-php
+    container_name: new_project-php
     volumes:
       - ./src:/var/www/html:delegated
     networks:
@@ -65,7 +65,7 @@ services:
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
-    container_name: ${PROJECT_NAME}-composer
+    container_name: new_project-composer
     volumes:
       - ./src:/var/www/html
     working_dir: /var/www/html
@@ -83,7 +83,7 @@ services:
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
-    container_name: ${PROJECT_NAME}-artisan
+    container_name: new_project-artisan
     volumes:
       - ./src:/var/www/html:delegated
     depends_on:
@@ -94,8 +94,8 @@ services:
       - laravel
 
   npm:
-    image: node:16.14
-    container_name: ${PROJECT_NAME}-npm
+    image: node:16.13.1
+    container_name: new_project-npm
     volumes:
       - ./src:/var/www/html
     ports:
@@ -103,12 +103,13 @@ services:
       - 3002:3001
     working_dir: /var/www/html
     entrypoint: ['npm']
+    # user: "node"
     networks:
       - laravel
 
   redis:
     image: redis:alpine
-    container_name: ${PROJECT_NAME}-redis
+    container_name: new_project-redis
     restart: unless-stopped
     ports:
       - 6380:6379
@@ -117,7 +118,7 @@ services:
 
   mailhog:
     image: mailhog/mailhog:latest
-    container_name: ${PROJECT_NAME}-mailhog
+    container_name: new_project-mailhog
     ports:
       - 1026:1025
       - 8026:8025
